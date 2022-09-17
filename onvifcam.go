@@ -130,7 +130,7 @@ func (c *Onvifcam) GetStreamURI(ctx context.Context) (string, error) {
 
 // Subscribe returns a subscription reference address.
 // Events are sent via http POST / request to the given http server listening in addr.
-func (c *Onvifcam) Subscribe(ctx context.Context, addr, topic, dateTime string) (string, error) {
+func (c *Onvifcam) Subscribe(ctx context.Context, addr, topic, dateTimeOrDuration string) (string, error) {
 	req := event.Subscribe{
 		ConsumerReference: event.EndpointReferenceType{
 			Address:             event.AttributedURIType(addr),
@@ -146,7 +146,7 @@ func (c *Onvifcam) Subscribe(ctx context.Context, addr, topic, dateTime string) 
 		SubscriptionPolicy: event.SubscriptionPolicy{
 			ChangedOnly: true, // we don't need Initialised or Deleted events
 		},
-		InitialTerminationTime: event.TerminationTime(dateTime),
+		InitialTerminationTime: event.AbsoluteOrRelativeTimeType(dateTimeOrDuration),
 	}
 
 	res, err := sevent.Call_Subscribe(ctx, c.d, req)

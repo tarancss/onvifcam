@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +56,13 @@ func TestSubscribe(t *testing.T) {
 	cam, err := New(context.TODO(), addr, username, password, &http.Client{})
 	require.NoError(t, err)
 
-	ep, err := cam.Subscribe(context.Background(), "http://192.168.1.79:3030", TopicMotionAlarm, "2023-09-14T15:05:00.00000Z")
+	until := time.Now().Add(10 * time.Minute).Format(time.RFC3339) // same than "PT10M" but with client's time
+
+	ep, err := cam.Subscribe(context.Background(), "http://192.168.1.79:3030", TopicMotionAlarm, until)
+	require.NoError(t, err)
+	require.Contains(t, ep, "onvif/Events/SubManager")
+
+	ep, err = cam.Subscribe(context.Background(), "http://192.168.1.79:3030", TopicMotionAlarm, "PT10M")
 	require.NoError(t, err)
 	require.Contains(t, ep, "onvif/Events/SubManager")
 }
