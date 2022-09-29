@@ -30,8 +30,14 @@ var (
 	ErrUnmarshalEventMessage = errors.New("failed to unmarshal event message")
 )
 
+var (
+	EventChanged     = "Changed"
+	EventInitialized = "Initialized"
+)
+
 type Onvifcam struct {
 	d                  *onvif.Device
+	addr               string
 	username, password string
 	mainProfile        xonvif.ReferenceToken
 	httpClient         *http.Client
@@ -41,21 +47,34 @@ const (
 	mainProfile = "Profile_1" // used as ProfileToken.
 )
 
-// New returns a new ONVIF device using basic authentication. The httpClient is used also by the ONVIF device implementation.
-// A context is currently unused (can be set to nil) but passed for future improvement of go-onvif module.
-func New(_ context.Context, addr, username, password string, httpClient *http.Client) (*Onvifcam, error) {
-	d, err := onvif.NewDevice(onvif.DeviceParams{Xaddr: addr, Username: username, Password: password, HttpClient: httpClient})
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrFailedNew, err)
+// New returns a new bare ONVIF device using basic authentication.
+// httpClient is used also by the ONVIF device implementation. It is set to a default client if not provided.
+func New(addr, username, password string, httpClient *http.Client) *Onvifcam {
+	if httpClient == nil {
+		httpClient = &http.Client{}
 	}
 
 	return &Onvifcam{
-		d:           d,
+		d:           nil,
+		addr:        addr,
 		username:    username,
 		password:    password,
 		mainProfile: mainProfile,
 		httpClient:  httpClient,
-	}, nil
+	}
+}
+
+// Init connects to the device using basic authentication and sets it up.
+// A context is currently unused (can be set to nil) but passed for future improvement of go-onvif module.
+func (c *Onvifcam) Init(_ context.Context) error {
+	d, err := onvif.NewDevice(onvif.DeviceParams{Xaddr: c.addr, Username: c.username, Password: c.password, HttpClient: c.httpClient})
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrFailedNew, err)
+	}
+
+	c.d = d
+
+	return nil
 }
 
 // GetSnapshot returns an image frame (jpeg) from the camera.

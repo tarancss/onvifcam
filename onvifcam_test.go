@@ -21,17 +21,27 @@ func getConfig() (addr, username, password string) {
 func TestNew(t *testing.T) {
 	addr, username, password := getConfig()
 
-	cam, err := New(context.TODO(), addr, username, password, &http.Client{})
-	require.NoError(t, err)
+	cam := New(addr, username, password, &http.Client{})
+	require.Nil(t, cam.d)
 	require.Equal(t, username, cam.username)
 	require.Equal(t, mainProfile, string(cam.mainProfile))
 	require.NotNil(t, cam.httpClient)
 }
 
+func TestInit(t *testing.T) {
+	addr, username, password := getConfig()
+	cam := New(addr, username, password, &http.Client{})
+
+	err := cam.Init(context.TODO())
+	require.NoError(t, err)
+	require.NotNil(t, cam.d)
+}
+
 func TestGetFrame(t *testing.T) {
 	addr, username, password := getConfig()
+	cam := New(addr, username, password, &http.Client{})
 
-	cam, err := New(context.TODO(), addr, username, password, &http.Client{})
+	err := cam.Init(context.TODO())
 	require.NoError(t, err)
 
 	frame, err := cam.GetSnapshot(context.Background())
@@ -41,8 +51,9 @@ func TestGetFrame(t *testing.T) {
 
 func TestGetStreamURI(t *testing.T) {
 	addr, username, password := getConfig()
+	cam := New(addr, username, password, &http.Client{})
 
-	cam, err := New(context.TODO(), addr, username, password, &http.Client{})
+	err := cam.Init(context.TODO())
 	require.NoError(t, err)
 
 	uri, err := cam.GetStreamURI(context.Background())
@@ -52,8 +63,9 @@ func TestGetStreamURI(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 	addr, username, password := getConfig()
+	cam := New(addr, username, password, &http.Client{})
 
-	cam, err := New(context.TODO(), addr, username, password, &http.Client{})
+	err := cam.Init(context.TODO())
 	require.NoError(t, err)
 
 	until := time.Now().Add(10 * time.Minute).Format(time.RFC3339) // same than "PT10M" but with client's time
@@ -139,7 +151,7 @@ func TestUnmarshalEventMessage(t *testing.T) {
 	require.Equal(t, "http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet", string(msg.Body.Notify.NotificationMessage.Topic.Dialect))
 	require.Equal(t, "tns1:VideoSource/MotionAlarm", string(msg.Body.Notify.NotificationMessage.Topic.TopicKinds))
 	require.Equal(t, "2022-09-09T20:49:30Z", string(msg.Body.Notify.NotificationMessage.Message.Message.UtcTime))
-	require.Equal(t, "Changed", string(msg.Body.Notify.NotificationMessage.Message.Message.PropertyOperation))
+	require.Equal(t, EventChanged, string(msg.Body.Notify.NotificationMessage.Message.Message.PropertyOperation))
 	require.Equal(t, "Source", msg.Body.Notify.NotificationMessage.Message.Message.Source.Name)
 	require.Equal(t, "VideoSource_1", string(msg.Body.Notify.NotificationMessage.Message.Message.Source.Value))
 	require.Equal(t, "State", msg.Body.Notify.NotificationMessage.Message.Message.Data.Name)
