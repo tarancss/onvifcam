@@ -20,4 +20,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
-replace github.com/use-go/onvif => ../onvif
+replace github.com/use-go/onvif v0.0.9 => github.com/tarancss/onvif v0.0.0-20220917141755-ec3715d62d18
