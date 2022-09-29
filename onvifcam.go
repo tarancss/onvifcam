@@ -163,7 +163,7 @@ func (c *Onvifcam) Subscribe(ctx context.Context, addr, topic, dateTimeOrDuratio
 			},
 		},
 		SubscriptionPolicy: event.SubscriptionPolicy{
-			ChangedOnly: true, // we don't need Initialised or Deleted events
+			ChangedOnly: true, // we don't need Initialized or Deleted events
 		},
 		InitialTerminationTime: event.AbsoluteOrRelativeTimeType(dateTimeOrDuration),
 	}

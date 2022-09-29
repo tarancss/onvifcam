@@ -59,7 +59,7 @@ linters-settings:
   lll:
     line-length: 140
   misspell:
-    locale: UK
+    locale: US
   nakedret:
     max-func-lines: 40
   nolintlint:
