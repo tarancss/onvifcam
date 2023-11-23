@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/stretchr/testify v1.4.0
-	github.com/use-go/onvif v0.0.9
+	github.com/use-go/onvif v0.0.0-20230921065222-217f1231c56f
 )
 
 require (
@@ -20,4 +20,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
-replace github.com/use-go/onvif v0.0.9 => github.com/tarancss/onvif v0.0.0-20220917141755-ec3715d62d18
+replace github.com/use-go/onvif v0.0.0-20230921065222-217f1231c56f => github.com/tarancss/onvif v0.0.0-20231123182348-22058f5239ad
