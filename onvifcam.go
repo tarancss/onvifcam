@@ -20,6 +20,9 @@ import (
 
 const (
 	TopicMotionAlarm = "tns1:VideoSource/MotionAlarm"
+	// profile examples
+	mainProfileOnvif18 = "Profile_1"
+	mainProfileOnvif23 = "profile1"
 )
 
 var (
@@ -35,39 +38,39 @@ var (
 	EventInitialized = "Initialized"
 )
 
-type Onvifcam struct {
-	d                  *onvif.Device
-	addr               string
-	username, password string
-	mainProfile        xonvif.ReferenceToken
-	httpClient         *http.Client
+type Config struct {
+	Addr     string
+	Username string
+	Password string
+	Profile  string
 }
 
-const (
-	mainProfile = "Profile_1" // used as ProfileToken.
-)
+type Onvifcam struct {
+	cfg         *Config
+	d           *onvif.Device
+	httpClient  *http.Client
+	snapshotURI *url.URL
+}
 
 // New returns a new bare ONVIF device using basic authentication.
 // httpClient is used also by the ONVIF device implementation. It is set to a default client if not provided.
-func New(addr, username, password string, httpClient *http.Client) *Onvifcam {
+func New(cfg *Config, httpClient *http.Client) *Onvifcam {
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
 
 	return &Onvifcam{
-		d:           nil,
-		addr:        addr,
-		username:    username,
-		password:    password,
-		mainProfile: mainProfile,
-		httpClient:  httpClient,
+		cfg:        cfg,
+		d:          nil,
+		httpClient: httpClient,
 	}
 }
 
 // Init connects to the device using basic authentication and sets it up.
 // A context is currently unused (can be set to nil) but passed for future improvement of go-onvif module.
 func (c *Onvifcam) Init(_ context.Context) error {
-	d, err := onvif.NewDevice(onvif.DeviceParams{Xaddr: c.addr, Username: c.username, Password: c.password, HttpClient: c.httpClient})
+	d, err := onvif.NewDevice(onvif.DeviceParams{Xaddr: c.cfg.Addr, Username: c.cfg.Username, Password: c.cfg.Password,
+		HttpClient: c.httpClient})
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrFailedNew, err)
 	}
@@ -79,33 +82,38 @@ func (c *Onvifcam) Init(_ context.Context) error {
 
 // GetSnapshot returns an image frame (jpeg) from the camera.
 func (c *Onvifcam) GetSnapshot(ctx context.Context) ([]byte, error) {
-	req := media.GetSnapshotUri{
-		XMLName:      "",
-		ProfileToken: c.mainProfile,
-	}
-	r, err := smedia.Call_GetSnapshotUri(ctx, c.d, req)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrNoURIFrame, err)
-	}
+	if c.snapshotURI == nil {
+		// only first time
+		req := media.GetSnapshotUri{
+			XMLName:      "",
+			ProfileToken: xonvif.ReferenceToken(c.cfg.Profile),
+		}
+		r, err := smedia.Call_GetSnapshotUri(ctx, c.d, req)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", ErrNoURIFrame, err)
+		}
 
-	var uri = string(r.MediaUri.Uri)
+		var uri = string(r.MediaUri.Uri)
 
-	if uri == "" {
-		return nil, ErrNoURIFrame
-	}
+		if uri == "" {
+			return nil, ErrNoURIFrame
+		}
 
-	urlURI, err := url.Parse(uri)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrNoURIFrame, err)
+		urlURI, err := url.Parse(uri)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", ErrNoURIFrame, err)
+		}
+
+		c.snapshotURI = urlURI
 	}
 
 	httpReq := &http.Request{
 		Method: http.MethodGet,
-		URL:    urlURI,
+		URL:    c.snapshotURI,
 		Header: http.Header{},
 	}
 
-	httpReq.SetBasicAuth(c.username, c.password)
+	httpReq.SetBasicAuth(c.cfg.Username, c.cfg.Password)
 
 	respHTTP, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -125,13 +133,14 @@ func (c *Onvifcam) GetSnapshot(ctx context.Context) ([]byte, error) {
 // For a rtsp client see https://pkg.go.dev/github.com/aler9/gortsplib#section-readme.
 func (c *Onvifcam) GetStreamURI(ctx context.Context) (string, error) {
 	reqStream := media.GetStreamUri{
+		XMLName: "",
 		StreamSetup: xonvif.StreamSetup{
-			Stream: "RTP_unicast",
+			Stream: "RTP", // "RTP_unicast",
 			Transport: xonvif.Transport{
 				Protocol: "TCP",
 			},
 		},
-		ProfileToken: c.mainProfile,
+		ProfileToken: xonvif.ReferenceToken(c.cfg.Profile),
 	}
 
 	rStream, err := smedia.Call_GetStreamUri(ctx, c.d, reqStream)

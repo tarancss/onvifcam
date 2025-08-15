@@ -2,6 +2,9 @@ package onvifcam
 
 import (
 	"context"
+	"errors"
+	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -10,36 +13,60 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getConfig() (addr, username, password string) {
-	addr = os.Getenv("ONVIF_ADDR")
-	username = os.Getenv("ONVIF_USERNAME")
-	password = os.Getenv("ONVIF_PASSWORD")
-
-	return
+func getConfig() *Config {
+	return &Config{
+		Addr:     os.Getenv("ONVIF_ADDR"),
+		Username: os.Getenv("ONVIF_USERNAME"),
+		Password: os.Getenv("ONVIF_PASSWORD"),
+		Profile:  os.Getenv("ONVIF_PROFILE"),
+	}
 }
 
 func TestNew(t *testing.T) {
-	addr, username, password := getConfig()
+	cfg := getConfig()
 
-	cam := New(addr, username, password, &http.Client{})
+	cam := New(cfg, &http.Client{})
 	require.Nil(t, cam.d)
-	require.Equal(t, username, cam.username)
-	require.Equal(t, mainProfile, string(cam.mainProfile))
+	require.Equal(t, cfg.Username, cam.cfg.Username)
 	require.NotNil(t, cam.httpClient)
 }
 
 func TestInit(t *testing.T) {
-	addr, username, password := getConfig()
-	cam := New(addr, username, password, &http.Client{})
+	cfg := getConfig()
+	cam := New(cfg, &http.Client{})
 
 	err := cam.Init(context.TODO())
 	require.NoError(t, err)
 	require.NotNil(t, cam.d)
 }
 
+func writeFrame(f []byte) error {
+	filename := "/tmp/frame.jpeg"
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, fs.FileMode(0600))
+	if err != nil {
+		return err
+	}
+
+	n, err := file.Write(f)
+	if err != nil {
+		return err
+	}
+
+	if n != len(f) {
+		return errors.New("cannot save")
+	}
+
+	err = file.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func TestGetFrame(t *testing.T) {
-	addr, username, password := getConfig()
-	cam := New(addr, username, password, &http.Client{})
+	cfg := getConfig()
+	cam := New(cfg, &http.Client{})
 
 	err := cam.Init(context.TODO())
 	require.NoError(t, err)
@@ -47,11 +74,13 @@ func TestGetFrame(t *testing.T) {
 	frame, err := cam.GetSnapshot(context.Background())
 	require.NoError(t, err)
 	require.Greater(t, len(frame), 0)
+
+	writeFrame(frame)
 }
 
 func TestGetStreamURI(t *testing.T) {
-	addr, username, password := getConfig()
-	cam := New(addr, username, password, &http.Client{})
+	cfg := getConfig()
+	cam := New(cfg, &http.Client{})
 
 	err := cam.Init(context.TODO())
 	require.NoError(t, err)
@@ -59,11 +88,12 @@ func TestGetStreamURI(t *testing.T) {
 	uri, err := cam.GetStreamURI(context.Background())
 	require.NoError(t, err)
 	require.NotEmpty(t, uri)
+	log.Printf("uri:%s", uri)
 }
 
 func TestSubscribe(t *testing.T) {
-	addr, username, password := getConfig()
-	cam := New(addr, username, password, &http.Client{})
+	cfg := getConfig()
+	cam := New(cfg, &http.Client{})
 
 	err := cam.Init(context.TODO())
 	require.NoError(t, err)
