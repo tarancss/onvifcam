@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io/fs"
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -94,7 +93,6 @@ func TestGetStreamURI(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotEmpty(t, uri)
-	log.Printf("uri:%s", uri)
 }
 
 func TestSubscribe(t *testing.T) {

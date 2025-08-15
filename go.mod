@@ -3,7 +3,6 @@ module github.com/tarancss/onvifcam
 go 1.18
 
 require (
-	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.4.0
 	github.com/use-go/onvif v0.0.0-20230921065222-217f1231c56f
 )
@@ -21,5 +20,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
 
-// replace github.com/use-go/onvif v0.0.0-20230921065222-217f1231c56f => github.com/tarancss/onvif v0.0.0-20231123182348-22058f5239ad
-replace github.com/use-go/onvif v0.0.0-20230921065222-217f1231c56f => ../onvif
+replace github.com/use-go/onvif v0.0.0-20230921065222-217f1231c56f => github.com/tarancss/onvif v0.0.0-20231123182348-22058f5239ad
