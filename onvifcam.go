@@ -23,6 +23,9 @@ const (
 	// profile examples
 	mainProfileOnvif18 = "Profile_1"
 	mainProfileOnvif23 = "profile1"
+
+	V18 = "18" // ONVIF v18
+	V23 = "23" // ONVIF v23
 )
 
 var (
@@ -31,6 +34,7 @@ var (
 	ErrNoURIStream           = errors.New("failed to get URI for stream")
 	ErrSubscribe             = errors.New("failed to subscribe")
 	ErrUnmarshalEventMessage = errors.New("failed to unmarshal event message")
+	ErrVersion               = errors.New("method does not exist in ONVIF version")
 )
 
 var (
@@ -43,6 +47,7 @@ type Config struct {
 	Username string
 	Password string
 	Profile  string
+	Version  string
 }
 
 type Onvifcam struct {
@@ -132,6 +137,10 @@ func (c *Onvifcam) GetSnapshot(ctx context.Context) ([]byte, error) {
 // GetStreamURI returns an rstp URI.
 // For a rtsp client see https://pkg.go.dev/github.com/aler9/gortsplib#section-readme.
 func (c *Onvifcam) GetStreamURI(ctx context.Context) (string, error) {
+	if c.cfg.Version != V18 {
+		return "", ErrVersion
+	}
+
 	reqStream := media.GetStreamUri{
 		XMLName: "",
 		StreamSetup: xonvif.StreamSetup{
@@ -159,6 +168,10 @@ func (c *Onvifcam) GetStreamURI(ctx context.Context) (string, error) {
 // Subscribe returns a subscription reference address.
 // Events are sent via http POST / request to the given http server listening in addr.
 func (c *Onvifcam) Subscribe(ctx context.Context, addr, topic, dateTimeOrDuration string) (string, error) {
+	if c.cfg.Version != V18 {
+		return "", ErrVersion
+	}
+
 	req := event.Subscribe{
 		ConsumerReference: event.EndpointReferenceType{
 			Address:             event.AttributedURIType(addr),

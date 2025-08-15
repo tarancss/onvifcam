@@ -19,6 +19,7 @@ func getConfig() *Config {
 		Username: os.Getenv("ONVIF_USERNAME"),
 		Password: os.Getenv("ONVIF_PASSWORD"),
 		Profile:  os.Getenv("ONVIF_PROFILE"),
+		Version:  os.Getenv("ONVIF_VERSION"),
 	}
 }
 
@@ -74,7 +75,6 @@ func TestGetFrame(t *testing.T) {
 	frame, err := cam.GetSnapshot(context.Background())
 	require.NoError(t, err)
 	require.Greater(t, len(frame), 0)
-
 	writeFrame(frame)
 }
 
@@ -86,6 +86,12 @@ func TestGetStreamURI(t *testing.T) {
 	require.NoError(t, err)
 
 	uri, err := cam.GetStreamURI(context.Background())
+	if cfg.Version != V18 {
+		require.True(t, errors.Is(err, ErrVersion))
+
+		return
+	}
+
 	require.NoError(t, err)
 	require.NotEmpty(t, uri)
 	log.Printf("uri:%s", uri)
@@ -101,6 +107,12 @@ func TestSubscribe(t *testing.T) {
 	until := time.Now().Add(10 * time.Minute).Format(time.RFC3339) // same than "PT10M" but with client's time
 
 	ep, err := cam.Subscribe(context.Background(), "http://192.168.1.79:3030", TopicMotionAlarm, until)
+	if cfg.Version != V18 {
+		require.True(t, errors.Is(err, ErrVersion))
+
+		return
+	}
+
 	require.NoError(t, err)
 	require.Contains(t, ep, "onvif/Events/SubManager")
 
